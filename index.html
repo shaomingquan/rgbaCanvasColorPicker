@@ -5,25 +5,27 @@
     <title>Title</title>
 </head>
 <body>
+<style>
+    .color-picker {
+        position: relative;
+    }
+</style>
 <div class="color-picker">
 </div>
 <script src="tools.js"></script>
 <script>
 
-    function Picker(parent, mode, options) {
+    function Dispatcher(parent) {
 
         //create container
         var container = document.createElement('div');
-        container.setAttribute('style', 'width:200px;height:200px;position:relative;');
+        container.setAttribute('style', 'width:215px;height:215px;position:relative;background-color:rgba(250,250,255);border:1px solid #ddd;border-radius:6px;');
         this.container = container;
-
-        this.mode = mode;
-        this.options = options;
 
         parent.appendChild(this.container);
     }
 
-    Picker.prototype.layout = function(ccp, cdp, cap) {
+    Dispatcher.prototype.layout = function(ccp, cdp, cap) {
         this.ccp = ccp;
         this.cdp = cdp;
         this.cap = cap;
@@ -33,16 +35,16 @@
         });
     }
 
-    Picker.prototype.dispatch = function(ccp, cdp, cap, callback) {
+    Dispatcher.prototype.dispatch = function(ccp, cdp, cap, callback) {
         //ccp => cdp => cap
         function getCapPx () {
             var x = cap.cursor.offsetLeft;
             x === 160 ? x = x - 1 : x = x;
-            callback(getPixel(x, 0, cap.canvas));
+            callback(getPixel(x, 0, cap));
         }
 
         cap.onPositionChange = function (x, y) {
-            var px = getPixel(x, y, this.canvas);
+            var px = getPixel(x, y, this);
             callback(px);
         }
 
@@ -50,16 +52,16 @@
         cdp.onPositionChange = function (x, y) {
             dx = x;
             dy = y;
-            var px = getPixel(x, y, this.canvas);
+            var px = getPixel(x, y, this);
             cap.fillCanvas(px);
             getCapPx();
         }
 
         ccp.onPositionChange = function (x, y) {
-            var px = getPixel(x, y, this.canvas);
+            console.log(x, y);
+            var px = getPixel(x, y, this);
             cdp.fillCanvas(px);
             cdp.onPositionChange(dx, dy);
-            getCapPx();
         }
     }
 
@@ -67,7 +69,7 @@
         this.dom = document.createElement('div');
         this.canvas = document.createElement('canvas');
         this.cursor = document.createElement('div');
-        this.canvas.setAttribute('style', 'width:100%;height:100%;');
+        this.canvas.setAttribute('style', 'width:100%;height:100%;border-radius:6px;');
         this.dom.appendChild(this.canvas);
         this.dom.appendChild(this.cursor);
 
@@ -93,7 +95,7 @@
         this.cursor.style.cursor = 'ns-resize';
         this.canvas.width = 25;
         this.canvas.height = 160;
-        this.dom.setAttribute('style', 'width:25px;height:160px;position:absolute;right:5px;top:5px;overflow:hidden;');
+        this.dom.setAttribute('style', 'width:25px;height:160px;position:absolute;right:10px;top:10px;overflow:visible;border:1px solid #ddd;border-radius:6px;');
         // 160 * 160
     }
 
@@ -124,7 +126,7 @@
         this.cursor.style.cursor = 'crosshair';
         this.canvas.width = 160;
         this.canvas.height = 160;
-        this.dom.setAttribute('style', 'width:160px;height:160px;position:absolute;left:5px;top:5px;overflow:hidden;');
+        this.dom.setAttribute('style', 'width:160px;height:160px;position:absolute;left:10px;top:10px;overflow:visible;border:1px solid #ddd;border-radius:6px;');
         // 25 * 160
     }
 
@@ -155,7 +157,7 @@
         var s = hsv.s;
         var v = hsv.v;
         this.cursor.style.bottom = floatToPercentage(s / 100);
-        this.cursor.style.left = floatToPercentage(160 - v / 100);
+        this.cursor.style.left = floatToPercentage((160 - v) / 100);
         this.onPositionChange(s / 100 * 160, (100 - v) / 100 * 160);
     }
 
@@ -166,7 +168,7 @@
         this.cursor.style.cursor = 'ew-resize';
         this.canvas.width = 160;
         this.canvas.height = 25;
-        this.dom.setAttribute('style', 'width:160px;height:25px;position:absolute;left:5px;bottom:5px;overflow:hidden;background-repeat:repeat;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAACZJREFUeNpi/P//PwMSuHfvHjKXiQEvoKk0C5pblJSUBovTAAIMAGasCK35LxQ0AAAAAElFTkSuQmCC)');
+        this.dom.setAttribute('style', 'width:160px;height:25px;position:absolute;left:10px;bottom:10px;overflow:visible;border:1px solid #ddd;border-radius:6px;background-repeat:repeat;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAACZJREFUeNpi/P//PwMSuHfvHjKXiQEvoKk0C5pblJSUBovTAAIMAGasCK35LxQ0AAAAAElFTkSuQmCC)');
         // 25 * 160
     }
 
@@ -187,42 +189,72 @@
     }
 
 
+    function AlphaMasker(cursor) {
+        this.dom = document.createElement('div');
+        this.dom.style = 'position:fixed;left:0;top:0;z-index:10000;width:100%;height:100%;cursor:' + cursor + ';';
+    }
+
+    AlphaMasker.prototype.show = function () {
+        document.body.appendChild(this.dom);
+    }
+
+    AlphaMasker.prototype.hide = function () {
+        document.body.removeChild(this.dom);
+    }
 
 
-    var parent = document.getElementsByClassName('color-picker')[0];
-    var options = {};
-
-    function PickerInit(parent, options, color) {
+    function CPicker(parent, color, callback) {
 
         //append subpickers to picker
-        var container = new Picker(parent, 'rgba', options);
+        var dispatcher = new Dispatcher(parent);
         var ccp = new ColorColorPicker();
         var cdp = new ColorDetailPicker();
         var cap = new ColorAlphaPicker();
-        container.layout(ccp, cdp, cap);
+        dispatcher.layout(ccp, cdp, cap);
+        this.dispatcher = dispatcher;
 
         //init cursor events
         ActivatePickerCursors(true, false, ccp);
         ActivatePickerCursors(true, true, cdp);
         ActivatePickerCursors(false, true, cap);
 
-        //
+        //init canvas
         var rgbaArr = rgbaStringToArr(color);
         ccp.fillCanvas();
         cdp.fillCanvas(rgbaArr);
         cap.fillCanvas(rgbaArr);
-        container.dispatch(ccp, cdp, cap, function (color) {
-            console.log(color);
+
+        //dispatch pickers
+        var firstTime = true;
+        dispatcher.dispatch(ccp, cdp, cap, function(c){
+            if(firstTime) {
+                callback(color);
+                firstTime = false;
+            } else {
+                callback(['rgba(' + c[0], c[1], c[2], Math.round(c[3] / 2.55) / 100 + ')'].join(','));
+            }
         });
 
         //init position
+        rgbaArr = rgbaStringToArr(color);
         var hsvArr = rgb2hsv.apply(null, rgbaArr);
-        ccp.initPosition(hsvArr)
-        cdp.initPosition(hsvArr)
-        cap.initPosition(rgbaArr)
+        ccp.initPosition(hsvArr);
+        cdp.initPosition(hsvArr);
+        cap.initPosition(rgbaArr);
     }
 
-    PickerInit(parent, options, 'rgba(74, 237, 204, 0.5)');
+    CPicker.prototype.open = function () {
+        this.dispatcher.container.style.display = 'block';
+    }
+
+    CPicker.prototype.close = function () {
+        this.dispatcher.container.style.display = 'none';
+    }
+
+    var parent = document.getElementsByClassName('color-picker')[0];
+    new CPicker(parent, 'rgb(74, 237, 204)', function (color) {
+        console.log(color);
+    });
 
 </script>
 </body>

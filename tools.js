@@ -2,23 +2,56 @@
  * Created by shaomingquan on 16/7/8.
  */
 
+function getOffsetRecurrence (dom) {
+    function _ (dom) {
+
+        if(dom === document.body) {
+            return [0, 0]
+        }
+
+        var nextOffsets = _ (dom.parentNode);
+        if(getComputedStyle(dom).position === 'static') {
+            return nextOffsets;
+        } else {
+            return [nextOffsets[0] + dom.offsetLeft, nextOffsets[1] + dom.offsetTop];
+        }
+    }
+
+    return _(dom)
+}
+
 function rgbaStringToArr (str) {
     var start = 4;
     if(str.indexOf('rgba') > -1) {
         start = 5;
     }
     var end = str.lastIndexOf(')');
-    return str.substring(start, end).split(',');
+    var arr = str.substring(start, end).split(',');
+    arr[3] = arr[3] || 1;
+    return arr;
 }
 
 function getRgba (color) {
     return 'rgba(' + color.join(',') + ')';
 }
 
-function getPixel (x, y, canvas) {
-    if(x === 160){x = 159};
-    if(y === 160){y = 159};
-    return canvas.getContext("2d").getImageData(x,y,1,1).data;
+function getPixel (x, y, picker) {
+    var limitX, limitY;
+    if(picker.name === 'colorPicker') {
+        limitX = 25;
+        limitY = 160;
+    } else if(picker.name === 'detailPicker') {
+        limitX = 160;
+        limitY = 160;
+    } else {
+        limitX = 160;
+        limitY = 25;
+    }
+    x = parseInt(x);
+    y = parseInt(y);
+    if(x >= limitX) {x = limitX - 1};
+    if(y >= limitY) {y = limitY - 1};
+    return picker.canvas.getContext("2d").getImageData(x,y,1,1).data;
 }
 
 function floatToPercentage (f) {
@@ -65,6 +98,14 @@ function rgb2hsv () {
     };
 }
 
+function limit(xy) {
+    if(xy < 0) {
+        return 0;
+    }else {
+        return xy > 160 ? 160 : xy;
+    }
+}
+
 function ActivatePickerCursors(v, h, picker) {
     var isRound = v && h;
     var stage = picker.dom;
@@ -75,19 +116,21 @@ function ActivatePickerCursors(v, h, picker) {
     var cursorWidth = cursor.offsetWidth;
     var cursorHeight = cursor.offsetHeight;
 
+    var offsets = getOffsetRecurrence(picker.dom);
+    var masker = new AlphaMasker(picker.cursor.style.cursor);
+
     var mousemoveHandler = function(e) {
-        if(e.target === canvas) {
-            var x = e.layerX;
-            var y = e.layerY;
+        if(e.target !== cursor) {
+            var x = limit(e.clientX - offsets[0]);
+            var y = limit(e.clientY - offsets[1]);
             if(isRound) {
-                cursor.style.top = y - parseInt(cursorHeight / 2) + 'px';
-                cursor.style.left = x - parseInt(cursorWidth / 2) + 'px';
-                console.log(cursor.style.top, y, parseInt(cursorHeight / 2));
+                cursor.style.top = y + 'px';
+                cursor.style.left = x + 'px';
             } else {
                 if(v) {
-                    cursor.style.top = y - parseInt(cursorHeight / 2) + 'px';
+                    cursor.style.top = y + 'px';
                 } else if(h) {
-                    cursor.style.left = x - parseInt(cursorWidth / 2) + 'px';
+                    cursor.style.left = x + 'px';
                 }
             }
             picker.positionChange(x, y);
@@ -97,29 +140,41 @@ function ActivatePickerCursors(v, h, picker) {
     }
 
     var mousedownHandler = function (e) {
-        stage.addEventListener('mousemove', mousemoveHandler);
-        mousemoveHandler(e);
+        if(e.target === canvas || e.target === picker.innerCursor) {
+            document.addEventListener('mousemove', mousemoveHandler);
+            masker.show();
+            mousemoveHandler(e);
+        }
     }
 
-    stage.addEventListener('mousedown', mousedownHandler);
-    stage.addEventListener('mouseup', function () {
-        stage.removeEventListener('mousemove', mousemoveHandler)
-    });
+    var mouseupHandler = function (e) {
+        if(e.target === masker.dom){
+            masker.hide();
+            document.removeEventListener('mousemove', mousemoveHandler)
+        }
+    }
+
+    document.addEventListener('mousedown', mousedownHandler);
+    document.addEventListener('mouseup', mouseupHandler);
 
     function decorateCursor() {
         var oldStyle = cursor.getAttribute('style') || '';
-        var commonStyle = 'background: black;';
+        var commonStyle = 'background-color:transpanrent;';
         var newStyle = '';
+        var innerCursor = document.createElement('div');
+        var innerCursorCommonStyle = 'position:absolute;border: 1px solid #999;border-radius:4px;background-color:rgba(180,180,180,0.5);'
         if(isRound) {
-            newStyle = 'height:4px;width:4px;position:absolute;'
+            newStyle = 'position:absolute;'
+            innerCursor.style = innerCursorCommonStyle + 'width:10px;height:10px;left:-8.5px;top:-8.5px;';
         } else {
             if(v) {
                 var stageWidth = stage.offsetWidth;
-                console.log(stageWidth);
-                newStyle = 'height:1px;width:' + stageWidth + 'px;position:absolute;left:0;'
+                innerCursor.style = innerCursorCommonStyle + 'width:29px;height:5px;left:-2px;top:-3px;';
+                newStyle = 'height:1px;width:' + stageWidth + 'px;position:absolute;left:-1px;'
             } else if(h) {
                 var stageHeight = stage.offsetHeight;
-                newStyle = 'height:' + stageHeight + 'px;width:1px;position:absolute;top:0;'
+                innerCursor.style = innerCursorCommonStyle + 'width:5px;height:29px;left:-3px;top:-2px;';
+                newStyle = 'height:' + stageHeight + 'px;width:1px;position:absolute;top:-1px;'
             } else {
                 throw new Error('input error');
             }
@@ -127,5 +182,8 @@ function ActivatePickerCursors(v, h, picker) {
 
         var finalStyle = [oldStyle, commonStyle, newStyle].join(';');
         cursor.setAttribute('style', finalStyle);
+        cursor.appendChild(innerCursor);
+        picker.innerCursor = innerCursor;
     }
+
 }

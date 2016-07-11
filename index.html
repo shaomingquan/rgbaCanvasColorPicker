@@ -10,252 +10,49 @@
         position: relative;
     }
 </style>
-<div class="color-picker">
+<div id="color" style="position:relative">
+    <span class="open-btn color-display" style="height:13px;width:13px;display: inline-block;"></span>
+    <span class="open-btn color-value">ddd</span>
+    <div class="color-picker" style='position: absolute;left: 0px; top: 22px;'>
+    </div>
 </div>
-<script src="tools.js"></script>
+
+<div id="color2" style="position:relative">
+    <span class="open-btn color-display" style="height:13px;width:13px;display: inline-block;"></span>
+    <span class="open-btn color-value">ddd</span>
+    <div class="color-picker" style='position: absolute;left: 0px; top: 22px;'>
+    </div>
+</div>
+<script src="colorPicker.js"></script>
 <script>
 
-    function Dispatcher(parent) {
+</script>
 
-        //create container
-        var container = document.createElement('div');
-        container.setAttribute('style', 'width:215px;height:215px;position:relative;background-color:rgba(250,250,255);border:1px solid #ddd;border-radius:6px;');
-        this.container = container;
+<script>
+    window.onload = function () {
 
-        parent.appendChild(this.container);
-    }
+        function cp(document) {
+            var parent = document.getElementsByClassName('color-picker')[0];
+            var display = document.getElementsByClassName('color-display')[0];
+            var value = document.getElementsByClassName('color-value')[0];
+            var cp = new ColorPicker(parent, 'rgb(74, 237, 204)', function (color) {
+                value.innerHTML = color;
+                display.style.backgroundColor = color;
+            });
 
-    Dispatcher.prototype.layout = function(ccp, cdp, cap) {
-        this.ccp = ccp;
-        this.cdp = cdp;
-        this.cap = cap;
-        var _this = this;
-        Array.prototype.forEach.call(arguments, function(picker) {
-            _this.container.appendChild(picker.dom);
-        });
-    }
-
-    Dispatcher.prototype.dispatch = function(ccp, cdp, cap, callback) {
-        //ccp => cdp => cap
-        function getCapPx () {
-            var x = cap.cursor.offsetLeft;
-            x === 160 ? x = x - 1 : x = x;
-            callback(getPixel(x, 0, cap));
+            Array.prototype.forEach.call(document.getElementsByClassName('open-btn'), function(btn) {
+                btn.onclick = function () {
+                    cp.open();
+                }
+            })
         }
 
-        cap.onPositionChange = function (x, y) {
-            var px = getPixel(x, y, this);
-            callback(px);
-        }
-
-        var dx,dy;
-        cdp.onPositionChange = function (x, y) {
-            dx = x;
-            dy = y;
-            var px = getPixel(x, y, this);
-            cap.fillCanvas(px);
-            getCapPx();
-        }
-
-        ccp.onPositionChange = function (x, y) {
-            console.log(x, y);
-            var px = getPixel(x, y, this);
-            cdp.fillCanvas(px);
-            cdp.onPositionChange(dx, dy);
-        }
+        cp(document.getElementById('color'));
+        cp(document.getElementById('color2'));
+//        open-btn
+//        color-display
+//        color-value
     }
-
-    function ColorPicker() {
-        this.dom = document.createElement('div');
-        this.canvas = document.createElement('canvas');
-        this.cursor = document.createElement('div');
-        this.canvas.setAttribute('style', 'width:100%;height:100%;border-radius:6px;');
-        this.dom.appendChild(this.canvas);
-        this.dom.appendChild(this.cursor);
-
-        this.fillCanvasCommon = function (callback) {
-            var ctx = this.canvas.getContext("2d");
-            ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            ctx.rect(0, 0, this.canvas.width, this.canvas.height);
-            var canvasGradient = callback(ctx, this.canvas);
-            ctx.fillStyle = canvasGradient;
-            ctx.fill();
-        }
-
-        var _this = this;
-        this.positionChange = function () {
-            _this.onPositionChange.apply(this, arguments);
-        }
-    }
-
-    function ColorColorPicker() {
-        ColorPicker.call(this);
-        this.name = 'colorPicker';
-        this.canvas.style.cursor = 'ns-resize';
-        this.cursor.style.cursor = 'ns-resize';
-        this.canvas.width = 25;
-        this.canvas.height = 160;
-        this.dom.setAttribute('style', 'width:25px;height:160px;position:absolute;right:10px;top:10px;overflow:visible;border:1px solid #ddd;border-radius:6px;');
-        // 160 * 160
-    }
-
-    ColorColorPicker.prototype.fillCanvas = function () {
-        //static
-        this.fillCanvasCommon(function (ctx, canvas) {
-            var canvasGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            canvasGradient.addColorStop(0, "#f00");
-            canvasGradient.addColorStop(0.17, "#ff0");
-            canvasGradient.addColorStop(0.33, "#0f0");
-            canvasGradient.addColorStop(0.50, "#0ff");
-            canvasGradient.addColorStop(0.67, "#00f");
-            canvasGradient.addColorStop(0.83, "#f0f");
-            canvasGradient.addColorStop(1, "#f00");
-            return canvasGradient;
-        })
-    }
-
-    ColorColorPicker.prototype.initPosition = function (hsv) {
-        var h = hsv.h;
-        this.cursor.style.top = floatToPercentage(h / 360);
-    }
-
-    function ColorDetailPicker() {
-        ColorPicker.call(this);
-        this.name = 'detailPicker';
-        this.canvas.style.cursor = 'crosshair';
-        this.cursor.style.cursor = 'crosshair';
-        this.canvas.width = 160;
-        this.canvas.height = 160;
-        this.dom.setAttribute('style', 'width:160px;height:160px;position:absolute;left:10px;top:10px;overflow:visible;border:1px solid #ddd;border-radius:6px;');
-        // 25 * 160
-    }
-
-    ColorDetailPicker.prototype.fillCanvas = function (color) {
-        this.fillCanvasCommon(function (ctx, canvas) {
-            //base color
-            var rgba = getRgba(color);
-            ctx.fillStyle = rgba;
-            ctx.fill();
-
-            //white to alpha 0 ,horizen
-            ctx.rect(0, 0, canvas.width, canvas.height);
-            var grd0 = ctx.createLinearGradient(0, 0, canvas.width, 0);
-            grd0.addColorStop(0, '#fff');
-            grd0.addColorStop(1, 'rgba(255,255,255,0)');
-            ctx.fillStyle = grd0;
-            ctx.fill();
-
-            //black to alpha 0 ,vertical
-            var grd1 = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            grd1.addColorStop(0, 'rgba(255,255,255,0)');
-            grd1.addColorStop(1, '#000');
-            return grd1;
-        })
-    }
-
-    ColorDetailPicker.prototype.initPosition = function (hsv) {
-        var s = hsv.s;
-        var v = hsv.v;
-        this.cursor.style.bottom = floatToPercentage(s / 100);
-        this.cursor.style.left = floatToPercentage((160 - v) / 100);
-        this.onPositionChange(s / 100 * 160, (100 - v) / 100 * 160);
-    }
-
-    function ColorAlphaPicker() {
-        ColorPicker.call(this);
-        this.name = 'alphaPicker';
-        this.canvas.style.cursor = 'ew-resize';
-        this.cursor.style.cursor = 'ew-resize';
-        this.canvas.width = 160;
-        this.canvas.height = 25;
-        this.dom.setAttribute('style', 'width:160px;height:25px;position:absolute;left:10px;bottom:10px;overflow:visible;border:1px solid #ddd;border-radius:6px;background-repeat:repeat;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAACZJREFUeNpi/P//PwMSuHfvHjKXiQEvoKk0C5pblJSUBovTAAIMAGasCK35LxQ0AAAAAElFTkSuQmCC)');
-        // 25 * 160
-    }
-
-    ColorAlphaPicker.prototype.fillCanvas = function (color) {
-        this.fillCanvasCommon(function (ctx, canvas) {
-            var grd = ctx.createLinearGradient(0, 0,canvas.width, 0);
-            color[3] = 0;
-            grd.addColorStop(0, getRgba(color));
-            color[3] = 1;
-            grd.addColorStop(1, getRgba(color));
-            return grd;
-        })
-    }
-
-    ColorAlphaPicker.prototype.initPosition = function (rgba) {
-        var a = rgba[3];
-        this.cursor.style.left = floatToPercentage(a / 1);
-    }
-
-
-    function AlphaMasker(cursor) {
-        this.dom = document.createElement('div');
-        this.dom.style = 'position:fixed;left:0;top:0;z-index:10000;width:100%;height:100%;cursor:' + cursor + ';';
-    }
-
-    AlphaMasker.prototype.show = function () {
-        document.body.appendChild(this.dom);
-    }
-
-    AlphaMasker.prototype.hide = function () {
-        document.body.removeChild(this.dom);
-    }
-
-
-    function CPicker(parent, color, callback) {
-
-        //append subpickers to picker
-        var dispatcher = new Dispatcher(parent);
-        var ccp = new ColorColorPicker();
-        var cdp = new ColorDetailPicker();
-        var cap = new ColorAlphaPicker();
-        dispatcher.layout(ccp, cdp, cap);
-        this.dispatcher = dispatcher;
-
-        //init cursor events
-        ActivatePickerCursors(true, false, ccp);
-        ActivatePickerCursors(true, true, cdp);
-        ActivatePickerCursors(false, true, cap);
-
-        //init canvas
-        var rgbaArr = rgbaStringToArr(color);
-        ccp.fillCanvas();
-        cdp.fillCanvas(rgbaArr);
-        cap.fillCanvas(rgbaArr);
-
-        //dispatch pickers
-        var firstTime = true;
-        dispatcher.dispatch(ccp, cdp, cap, function(c){
-            if(firstTime) {
-                callback(color);
-                firstTime = false;
-            } else {
-                callback(['rgba(' + c[0], c[1], c[2], Math.round(c[3] / 2.55) / 100 + ')'].join(','));
-            }
-        });
-
-        //init position
-        rgbaArr = rgbaStringToArr(color);
-        var hsvArr = rgb2hsv.apply(null, rgbaArr);
-        ccp.initPosition(hsvArr);
-        cdp.initPosition(hsvArr);
-        cap.initPosition(rgbaArr);
-    }
-
-    CPicker.prototype.open = function () {
-        this.dispatcher.container.style.display = 'block';
-    }
-
-    CPicker.prototype.close = function () {
-        this.dispatcher.container.style.display = 'none';
-    }
-
-    var parent = document.getElementsByClassName('color-picker')[0];
-    new CPicker(parent, 'rgb(74, 237, 204)', function (color) {
-        console.log(color);
-    });
-
 </script>
 </body>
 </html>

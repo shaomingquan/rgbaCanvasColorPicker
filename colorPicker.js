@@ -33,16 +33,42 @@
         }
     }
 
+    function hexToRgb(color){
+        var sColor = color.toLowerCase();
+        if(sColor.length === 4){
+            var sColorNew = "#";
+            for(var i=1; i<4; i+=1){
+                sColorNew += sColor.slice(i,i+1).concat(sColor.slice(i,i+1));
+            }
+            sColor = sColorNew;
+        }
+        //澶勭悊鍏綅鐨勯鑹插€�
+        var sColorChange = [];
+        for(var i=1; i<7; i+=2){
+            sColorChange.push(parseInt("0x"+sColor.slice(i,i+2)));
+        }
+        sColorChange.push(1)
+        return sColorChange;
+
+    };
+
 
     function rgbaStringToArr (str) {
-        var start = 4;
-        if(str.indexOf('rgba') > -1) {
-            start = 5;
+        var hexReg = /^#([0-9a-fA-f]{3}|[0-9a-fA-f]{6})$/;
+        if(str === 'transparent' || str === '') {
+            return [0, 0, 0, 0];
+        } else if(hexReg.test(str)) {
+            return hexToRgb(str);
+        } else {
+            var start = 4;
+            if(str.indexOf('rgba') > -1) {
+                start = 5;
+            }
+            var end = str.lastIndexOf(')');
+            var arr = str.substring(start, end).split(',');
+            arr[3] = arr[3] || 1;
+            return arr;
         }
-        var end = str.lastIndexOf(')');
-        var arr = str.substring(start, end).split(',');
-        arr[3] = arr[3] || 1;
-        return arr;
     }
 
     function getRgba (color) {
@@ -233,7 +259,7 @@
 
         cap.onPositionChange = function (x, y) {
             var px = getPixel(x, y, this);
-            callback(px);
+            callback(px, true);
         }
 
         var dx,dy;
@@ -403,7 +429,11 @@
             var cdp = new ColorDetailPicker();
             var cap = new ColorAlphaPicker();
             var cancelBtn = new CancelBtn();
+            this.ccp = ccp;
+            this.cdp = cdp;
+            this.cap = cap;
             this.cancelBtn = cancelBtn;
+            this.callback = callback;
             dispatcher.layout(ccp, cdp, cap, cancelBtn);
             this.dispatcher = dispatcher;
 
@@ -412,48 +442,56 @@
             ActivatePickerCursors(true, true, cdp);
             ActivatePickerCursors(false, true, cap);
 
-            //init canvas
-            var rgbaArr = rgbaStringToArr(color);
-            ccp.fillCanvas();
-            cdp.fillCanvas(rgbaArr);
-            cap.fillCanvas(rgbaArr);
-
-            //dispatch pickers
-            var firstTime = true;
-            this.previousColor = rgbaArr;
-            this.currentColor = rgbaArr;
-            function dispatcherHandler(c){
-                this.currentColor = c;
-                if(firstTime) {
-                    callback(color);
-                    firstTime = false;
-                } else {
-                    callback(pixelArrToColorString(c));
-                }
-            }
-            dispatcher.dispatch(ccp, cdp, cap, dispatcherHandler.bind(this));
-
-            function initPosition() {
-                //init position
-                rgbaArr = rgbaStringToArr(color);
-                var hsvArr = rgb2hsv.apply(null, rgbaArr);
-                console.log(hsvArr, rgbaArr);
-                ccp.initPosition(hsvArr);
-                cdp.initPosition(hsvArr);
-                cap.initPosition(rgbaArr);
-            }
-
-            cancelBtn.dom.onclick = function () {
-                if(this.previousColor[3] === 1)
-                    this.previousColor[3] = 255;
-                dispatcherHandler(this.previousColor);
-            }.bind(this);
-            initPosition();
-
+            this.initColor(color);
         } catch (e) {
 
         }
 
+    }
+
+    CPicker.prototype.initColor = function (color, callback) {
+        //init canvas
+        var rgbaArr = rgbaStringToArr(color);
+        this.ccp.fillCanvas();
+        this.cdp.fillCanvas(rgbaArr);
+        this.cap.fillCanvas(rgbaArr);
+
+        //dispatch pickers
+        var firstTime = true;
+        this.previousColor = rgbaArr;
+        this.currentColor = rgbaArr;
+        function dispatcherHandler(c, isCap){
+            if(isCap) {
+                this.currentColor[3] = c[3];
+            } else {
+                this.currentColor = c;
+            }
+            if(firstTime) {
+                this.callback(color);
+                firstTime = false;
+            } else {
+                this.callback(pixelArrToColorString(this.currentColor));
+            }
+        }
+
+        this.dispatcher.dispatch(this.ccp, this.cdp, this.cap, dispatcherHandler.bind(this));
+
+        var _this = this;
+        function initPosition() {
+            //init position
+            rgbaArr = rgbaStringToArr(color);
+            var hsvArr = rgb2hsv.apply(null, rgbaArr);
+            _this.ccp.initPosition(hsvArr);
+            _this.cdp.initPosition(hsvArr);
+            _this.cap.initPosition(rgbaArr);
+        }
+
+        this.cancelBtn.dom.onclick = function () {
+            if(this.previousColor[3] === 1)
+                this.previousColor[3] = 255;
+            dispatcherHandler.bind(this)(this.previousColor);
+        }.bind(this);
+        initPosition();
     }
 
     CPicker.prototype.clickManager = function () {

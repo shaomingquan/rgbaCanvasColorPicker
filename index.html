@@ -35,7 +35,7 @@
             var parent = document.getElementsByClassName('color-picker')[0];
             var display = document.getElementsByClassName('color-display')[0];
             var value = document.getElementsByClassName('color-value')[0];
-            var cp = new ColorPicker(parent, 'rgb(74, 237, 204)', function (color) {
+            var cp = new ColorPicker(parent, '', function (color) {
                 value.innerHTML = color;
                 display.style.backgroundColor = color;
             });

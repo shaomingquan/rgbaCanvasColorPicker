@@ -420,7 +420,10 @@
 
             //dispatch pickers
             var firstTime = true;
+            this.previousColor = rgbaArr;
+            this.currentColor = rgbaArr;
             function dispatcherHandler(c){
+                this.currentColor = c;
                 if(firstTime) {
                     callback(color);
                     firstTime = false;
@@ -428,7 +431,7 @@
                     callback(pixelArrToColorString(c));
                 }
             }
-            dispatcher.dispatch(ccp, cdp, cap, dispatcherHandler);
+            dispatcher.dispatch(ccp, cdp, cap, dispatcherHandler.bind(this));
 
             function initPosition() {
                 //init position
@@ -440,13 +443,12 @@
                 cap.initPosition(rgbaArr);
             }
 
-            initPosition();
-            _this = this;
             cancelBtn.dom.onclick = function () {
-                if(rgbaArr[3] === 1)
-                    rgbaArr[3] = 255;
-                dispatcherHandler(rgbaArr);
-            }
+                if(this.previousColor[3] === 1)
+                    this.previousColor[3] = 255;
+                dispatcherHandler(this.previousColor);
+            }.bind(this);
+            initPosition();
 
         } catch (e) {
 
@@ -479,8 +481,11 @@
     }
 
     CPicker.prototype.close = function () {
+        //这里更新previousColor
         if(this.opened) {
             this.dispatcher.container.style.visibility = 'hidden';
+            this.previousColor = this.currentColor;
+            console.log(this, this.previousColor);
         }
         this.opened = false;
     }

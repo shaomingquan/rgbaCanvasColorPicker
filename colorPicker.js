@@ -56,7 +56,7 @@
     function rgbaStringToArr (str) {
         var hexReg = /^#([0-9a-fA-f]{3}|[0-9a-fA-f]{6})$/;
         if(str === 'transparent' || str === '') {
-            return [0, 0, 0, 0];
+            return [255, 0, 0, 1];
         } else if(hexReg.test(str)) {
             return hexToRgb(str);
         } else {
@@ -66,8 +66,12 @@
             }
             var end = str.lastIndexOf(')');
             var arr = str.substring(start, end).split(',');
-            arr[3] = arr[3] || 1;
-            return arr;
+            if(arr.length >= 3) {
+                arr[3] = arr[3] || 1;
+                return arr;
+            } else {
+                return [255, 0, 0, 1];
+            }
         }
     }
 
@@ -86,6 +90,7 @@
         } else {
             limitX = 160;
             limitY = 25;
+            console.log(x, y);
         }
         x = parseInt(x);
         y = parseInt(y);
@@ -253,8 +258,8 @@
         //ccp => cdp => cap
         function getCapPx () {
             var x = cap.cursor.offsetLeft;
-            x === 160 ? x = x - 1 : x = x;
-            callback(getPixel(x, 0, cap));
+            x === 160 ? x = x - 2 : x = x;
+            callback(getPixel(x + 1, 0, cap));
         }
 
         cap.onPositionChange = function (x, y) {
@@ -461,6 +466,9 @@
         this.previousColor = rgbaArr;
         this.currentColor = rgbaArr;
         function dispatcherHandler(c, isCap){
+            if(c[3] === 3) {
+                c[3] = 0;
+            }
             if(isCap) {
                 this.currentColor[3] = c[3];
             } else {

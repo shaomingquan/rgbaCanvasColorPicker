@@ -403,6 +403,7 @@
             var cdp = new ColorDetailPicker();
             var cap = new ColorAlphaPicker();
             var cancelBtn = new CancelBtn();
+            this.cancelBtn = cancelBtn;
             dispatcher.layout(ccp, cdp, cap, cancelBtn);
             this.dispatcher = dispatcher;
 
@@ -442,7 +443,6 @@
             initPosition();
             _this = this;
             cancelBtn.dom.onclick = function () {
-                _this.close();
                 if(rgbaArr[3] === 1)
                     rgbaArr[3] = 255;
                 dispatcherHandler(rgbaArr);
@@ -454,11 +454,10 @@
 
     }
 
-    var handler = null;
-    function clickManager () {
+    CPicker.prototype.clickManager = function () {
         var container = this.dispatcher.container;
-        handler = function (e) {
-            if(e.path.indexOf(container) < 0) {
+        var handler = function (e) {
+            if(e.path.indexOf(container) < 0 || e.path.indexOf(this.cancelBtn.dom) > -1) {
                 if(this.opened) {
                     this.close();
                 }
@@ -473,7 +472,7 @@
             this.dispatcher.container.style.visibility = 'visible';
             var _this = this;
             setTimeout(function () {
-                clickManager.call(_this);
+                _this.clickManager.call(_this);
             });
         }
         this.opened = true;
@@ -482,13 +481,8 @@
     CPicker.prototype.close = function () {
         if(this.opened) {
             this.dispatcher.container.style.visibility = 'hidden';
-            document.removeEventListener('click', handler);
         }
         this.opened = false;
-    }
-
-    CPicker.prototype.cancel = function () {
-
     }
 
     return CPicker;

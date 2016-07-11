@@ -252,6 +252,11 @@
         }
     }
 
+    function CancelBtn () {
+        this.dom = document.createElement('div');
+        this.dom.style = 'position:absolute;right:10px;bottom:10px;font-size:14px;height:25px;width:25px;border-radius:4px;border:1px solid #ccc;background-repeat:no-repeat;background-position:4px 4.5px;cursor:pointer;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA+UlEQVQ4T6XTMSuFYRjG8d9hs1gskiQWfAAlWRTlLOQzKGfkMxgwILN8CAajgZIshwElrFik2HXXo15v73teznnG5+n63/d1dT01HZ5aG/pBvOMztGWACcxgKA14xCVusIZTNMsAyxjAFULYjREE9AP9rQAh7sVhztpogi4k2EbRBjFhFvsFuUxhLN334Ri3eQuNRL34T7DZEDexg7c/AOZxjq8sYAu7eKkA9KRBq3kLcXGNKguRVR3becA45rBXscE6TnBX1INFRMoHJZAVvOLo572oiUupgVGkJ3RhGJN4yIpbVTnsTCdQDHnGGe7zm7XzmX4xOgZ8AzcfKxHa9LBsAAAAAElFTkSuQmCC)'
+    }
+
     function ColorPicker() {
         this.dom = document.createElement('div');
         this.canvas = document.createElement('canvas');
@@ -397,7 +402,8 @@
             var ccp = new ColorColorPicker();
             var cdp = new ColorDetailPicker();
             var cap = new ColorAlphaPicker();
-            dispatcher.layout(ccp, cdp, cap);
+            var cancelBtn = new CancelBtn();
+            dispatcher.layout(ccp, cdp, cap, cancelBtn);
             this.dispatcher = dispatcher;
 
             //init cursor events
@@ -413,21 +419,34 @@
 
             //dispatch pickers
             var firstTime = true;
-            dispatcher.dispatch(ccp, cdp, cap, function(c){
+            function dispatcherHandler(c){
                 if(firstTime) {
                     callback(color);
                     firstTime = false;
                 } else {
                     callback(pixelArrToColorString(c));
                 }
-            });
+            }
+            dispatcher.dispatch(ccp, cdp, cap, dispatcherHandler);
 
-            //init position
-            rgbaArr = rgbaStringToArr(color);
-            var hsvArr = rgb2hsv.apply(null, rgbaArr);
-            ccp.initPosition(hsvArr);
-            cdp.initPosition(hsvArr);
-            cap.initPosition(rgbaArr);
+            function initPosition() {
+                //init position
+                rgbaArr = rgbaStringToArr(color);
+                var hsvArr = rgb2hsv.apply(null, rgbaArr);
+                console.log(hsvArr, rgbaArr);
+                ccp.initPosition(hsvArr);
+                cdp.initPosition(hsvArr);
+                cap.initPosition(rgbaArr);
+            }
+
+            initPosition();
+            _this = this;
+            cancelBtn.dom.onclick = function () {
+                _this.close();
+                if(rgbaArr[3] === 1)
+                    rgbaArr[3] = 255;
+                dispatcherHandler(rgbaArr);
+            }
 
         } catch (e) {
 
@@ -435,9 +454,10 @@
 
     }
 
+    var handler = null;
     function clickManager () {
         var container = this.dispatcher.container;
-        var handler = function (e) {
+        handler = function (e) {
             if(e.path.indexOf(container) < 0) {
                 if(this.opened) {
                     this.close();
@@ -462,8 +482,14 @@
     CPicker.prototype.close = function () {
         if(this.opened) {
             this.dispatcher.container.style.visibility = 'hidden';
+            document.removeEventListener('click', handler);
         }
         this.opened = false;
     }
+
+    CPicker.prototype.cancel = function () {
+
+    }
+
     return CPicker;
 })

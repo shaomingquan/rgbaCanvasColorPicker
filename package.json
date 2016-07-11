@@ -1,0 +1,18 @@
+{
+  "name": "canvasColorPicker",
+  "version": "1.0.0",
+  "description": "color picker by canvas and it's standalone components.",
+  "main": "colorPicker.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shaomingquan/rgbaCanvasColorPicker.git"
+  },
+  "keywords": ["mt-component"],
+  "examples": ["./demo.html"],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shaomingquan/rgbaCanvasColorPicker/issues"
+  },
+  "homepage": "https://github.com/shaomingquan/rgbaCanvasColorPicker#readme"
+}

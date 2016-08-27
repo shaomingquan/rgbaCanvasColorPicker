@@ -6,104 +6,115 @@
         typeof define === 'function' && define.amd ? define(factory) :
             global.ColorPicker = factory()
 })(this, function () {
-    function getOffsetRecurrence (dom) {
-        function _ (dom) {
 
-            if(dom === document.body) {
-                return [0, 0]
+    //获得dom节点到文档左上角距离
+    function getOffsetRecurrence(dom) {
+        function _(dom) {
+
+            if (dom === document.body) {
+                return [-dom.scrollLeft, -dom.scrollTop]
             }
 
-            var nextOffsets = _ (dom.parentNode);
-            if(getComputedStyle(dom).position === 'static') {
-                return nextOffsets;
+            var nextOffsets = _(dom.parentNode);
+            if (getComputedStyle(dom).position === 'static') {
+                return [nextOffsets[0] - dom.scrollLeft, nextOffsets[1] - dom.scrollTop];
             } else {
-                return [nextOffsets[0] + dom.offsetLeft, nextOffsets[1] + dom.offsetTop];
+                return [nextOffsets[0] + dom.offsetLeft - dom.scrollLeft, nextOffsets[1] + dom.offsetTop - dom.scrollTop];
             }
         }
 
         return _(dom)
     }
 
-    function pixelArrToColorString (c) {
+    //像素点转换成颜色字符串
+    function pixelArrToColorString(c) {
         var alpha = Math.round(c[3] / 2.55) / 100;
-        if(alpha === 1) {
+        if (alpha === 1) {
             return ['rgb(' + c[0], c[1], c[2] + ')'].join(',');
         } else {
             return ['rgba(' + c[0], c[1], c[2], alpha + ')'].join(',');
         }
     }
 
-    function hexToRgb(color){
+    //十六进制转换成rgb
+    function hexToRgb(color) {
         var sColor = color.toLowerCase();
-        if(sColor.length === 4){
+        if (sColor.length === 4) {
             var sColorNew = "#";
-            for(var i=1; i<4; i+=1){
-                sColorNew += sColor.slice(i,i+1).concat(sColor.slice(i,i+1));
+            for (var i = 1; i < 4; i += 1) {
+                sColorNew += sColor.slice(i, i + 1).concat(sColor.slice(i, i + 1));
             }
             sColor = sColorNew;
         }
-        //澶勭悊鍏綅鐨勯鑹插€�
         var sColorChange = [];
-        for(var i=1; i<7; i+=2){
-            sColorChange.push(parseInt("0x"+sColor.slice(i,i+2)));
+        for (var i = 1; i < 7; i += 2) {
+            sColorChange.push(parseInt("0x" + sColor.slice(i, i + 2)));
         }
         sColorChange.push(1)
         return sColorChange;
 
     };
 
-
-    function rgbaStringToArr (str) {
+    //样式字符串转换成rgba颜色数组
+    function rgbaStringToArr(str) {
         var hexReg = /^#([0-9a-fA-f]{3}|[0-9a-fA-f]{6})$/;
-        if(str === 'transparent' || str === '') {
-            return [255, 0, 0, 1];
-        } else if(hexReg.test(str)) {
+        if (hexReg.test(str)) {
             return hexToRgb(str);
         } else {
             var start = 4;
-            if(str.indexOf('rgba') > -1) {
+            if (str.indexOf('rgba') > -1) {
                 start = 5;
             }
             var end = str.lastIndexOf(')');
             var arr = str.substring(start, end).split(',');
-            if(arr.length >= 3) {
+            //如果输入正确, 数组长度至少为3
+            if (arr.length >= 3) {
                 arr[3] = arr[3] || 1;
                 return arr;
-            } else {
-                return [255, 0, 0, 1];
             }
         }
+        //输入不正确或者为空
+        return [255, 0, 0, 1];
     }
 
-    function getRgba (color) {
+    //
+    function getRgba(color) {
         return 'rgba(' + color.join(',') + ')';
     }
 
-    function getPixel (x, y, picker) {
+    function getPixel(x, y, picker) {
         var limitX, limitY;
-        if(picker.name === 'colorPicker') {
+        if (picker.name === 'colorPicker') {
             limitX = 25;
             limitY = 160;
-        } else if(picker.name === 'detailPicker') {
+        } else if (picker.name === 'detailPicker') {
             limitX = 160;
             limitY = 160;
         } else {
             limitX = 160;
             limitY = 25;
-            console.log(x, y);
         }
         x = parseInt(x);
         y = parseInt(y);
-        if(x >= limitX) {x = limitX - 1};
-        if(y >= limitY) {y = limitY - 1};
-        return picker.canvas.getContext("2d").getImageData(x,y,1,1).data;
+        if (x >= limitX) {
+            x = limitX - 1
+        }
+        if (y >= limitY) {
+            y = limitY - 1
+        }
+        //canvas选色方案的缺陷, 有时候想选择纯黑的时候, 只能选到1,1,1
+        var data = picker.canvas.getContext("2d").getImageData(x, y, 1, 1).data;
+        if (data[0] === 1 && data[1] === 1 && data[2] === 1) {
+            data[0] = data[1] = data[2] = 0;
+        }
+        return data;
     }
 
-    function floatToPercentage (f) {
+    function floatToPercentage(f) {
         return f * 100 + '%';
     }
 
-    function rgb2hsv () {
+    function rgb2hsv() {
         var rr, gg, bb,
             r = arguments[0] / 255,
             g = arguments[1] / 255,
@@ -111,7 +122,7 @@
             h, s,
             v = Math.max(r, g, b),
             diff = v - Math.min(r, g, b),
-            diffc = function(c){
+            diffc = function (c) {
                 return (v - c) / 6 / diff + 1 / 2;
             };
 
@@ -125,14 +136,14 @@
 
             if (r === v) {
                 h = bb - gg;
-            }else if (g === v) {
+            } else if (g === v) {
                 h = (1 / 3) + rr - bb;
-            }else if (b === v) {
+            } else if (b === v) {
                 h = (2 / 3) + gg - rr;
             }
             if (h < 0) {
                 h += 1;
-            }else if (h > 1) {
+            } else if (h > 1) {
                 h -= 1;
             }
         }
@@ -143,38 +154,68 @@
         };
     }
 
+    function rgbToHsl(){
+        var r = arguments[0] / 255,
+            g = arguments[1] / 255,
+            b = arguments[2] / 255;
+        var max = Math.max(r, g, b), min = Math.min(r, g, b);
+        var h, s, l = (max + min) / 2;
+
+        if(max == min){
+            h = s = 0; // achromatic
+        }else{
+            var d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch(max){
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return {
+            h: Math.round(h * 360),
+            s: Math.round(s * 100),
+            l: Math.round(l * 100)
+        };
+    }
+
     function limit(xy) {
-        if(xy < 0) {
+        if (xy < 0) {
             return 0;
-        }else {
+        } else {
             return xy > 160 ? 160 : xy;
         }
     }
 
+    //水平方向,垂直方向或者二维
     function ActivatePickerCursors(v, h, picker) {
+        //是否二维
         var isRound = v && h;
         var stage = picker.dom;
         var cursor = picker.cursor;
         var canvas = picker.canvas;
 
+        //根据不同的方向,定制不同的指针样式。
         decorateCursor();
         var cursorWidth = cursor.offsetWidth;
         var cursorHeight = cursor.offsetHeight;
 
-        var offsets = getOffsetRecurrence(picker.dom);
+        //获取全局的offset
+        var offset = null;
         var masker = new AlphaMasker(picker.cursor.style.cursor);
 
-        var mousemoveHandler = function(e) {
-            if(e.target !== cursor) {
+        var mousemoveHandler = function (e) {
+            if (e.target !== cursor) {
                 var x = limit(e.clientX - offsets[0]);
                 var y = limit(e.clientY - offsets[1]);
-                if(isRound) {
+                if (isRound) {
                     cursor.style.top = y + 'px';
                     cursor.style.left = x + 'px';
                 } else {
-                    if(v) {
+                    if (v) {
                         cursor.style.top = y + 'px';
-                    } else if(h) {
+                    } else if (h) {
                         cursor.style.left = x + 'px';
                     }
                 }
@@ -185,7 +226,8 @@
         }
 
         var mousedownHandler = function (e) {
-            if(e.target === canvas || e.target === picker.innerCursor) {
+            if (e.target === canvas || e.target === picker.innerCursor) {
+                offsets = getOffsetRecurrence(picker.dom);
                 document.addEventListener('mousemove', mousemoveHandler);
                 masker.show();
                 mousemoveHandler(e);
@@ -193,7 +235,7 @@
         }
 
         var mouseupHandler = function (e) {
-            if(e.target === masker.dom){
+            if (e.target === masker.dom) {
                 masker.hide();
                 document.removeEventListener('mousemove', mousemoveHandler)
             }
@@ -208,15 +250,15 @@
             var newStyle = '';
             var innerCursor = document.createElement('div');
             var innerCursorCommonStyle = 'position:absolute;border: 1px solid #999;border-radius:4px;background-color:rgba(180,180,180,0.5);'
-            if(isRound) {
+            if (isRound) {
                 newStyle = 'position:absolute;'
                 innerCursor.style = innerCursorCommonStyle + 'width:10px;height:10px;left:-8.5px;top:-8.5px;';
             } else {
-                if(v) {
+                if (v) {
                     var stageWidth = stage.offsetWidth;
                     innerCursor.style = innerCursorCommonStyle + 'width:29px;height:5px;left:-2px;top:-3px;';
                     newStyle = 'height:1px;width:' + stageWidth + 'px;position:absolute;left:-1px;'
-                } else if(h) {
+                } else if (h) {
                     var stageHeight = stage.offsetHeight;
                     innerCursor.style = innerCursorCommonStyle + 'width:5px;height:29px;left:-3px;top:-2px;';
                     newStyle = 'height:' + stageHeight + 'px;width:1px;position:absolute;top:-1px;'
@@ -244,22 +286,21 @@
         parent.appendChild(this.container);
     }
 
-    Dispatcher.prototype.layout = function(ccp, cdp, cap) {
+    Dispatcher.prototype.layout = function (ccp, cdp, cap) {
         this.ccp = ccp;
         this.cdp = cdp;
         this.cap = cap;
         var _this = this;
-        Array.prototype.forEach.call(arguments, function(picker) {
+        Array.prototype.forEach.call(arguments, function (picker) {
             _this.container.appendChild(picker.dom);
         });
     }
 
-    Dispatcher.prototype.dispatch = function(ccp, cdp, cap, callback) {
+    Dispatcher.prototype.dispatch = function (ccp, cdp, cap, callback) {
         //ccp => cdp => cap
-        function getCapPx () {
+        function getCapPx() {
             var x = cap.cursor.offsetLeft;
-            x === 160 ? x = x - 2 : x = x;
-            callback(getPixel(x + 1, 0, cap));
+            callback(getPixel(!x ? 1 : x, 0, cap));
         }
 
         cap.onPositionChange = function (x, y) {
@@ -267,7 +308,7 @@
             callback(px, true);
         }
 
-        var dx,dy;
+        var dx, dy;
         cdp.onPositionChange = function (x, y) {
             dx = x;
             dy = y;
@@ -283,7 +324,7 @@
         }
     }
 
-    function CancelBtn () {
+    function CancelBtn() {
         this.dom = document.createElement('div');
         this.dom.style = 'position:absolute;right:10px;bottom:10px;font-size:14px;height:25px;width:25px;border-radius:4px;border:1px solid #ccc;background-repeat:no-repeat;background-position:4px 4.5px;cursor:pointer;background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAA+UlEQVQ4T6XTMSuFYRjG8d9hs1gskiQWfAAlWRTlLOQzKGfkMxgwILN8CAajgZIshwElrFik2HXXo15v73teznnG5+n63/d1dT01HZ5aG/pBvOMztGWACcxgKA14xCVusIZTNMsAyxjAFULYjREE9AP9rQAh7sVhztpogi4k2EbRBjFhFvsFuUxhLN334Ri3eQuNRL34T7DZEDexg7c/AOZxjq8sYAu7eKkA9KRBq3kLcXGNKguRVR3becA45rBXscE6TnBX1INFRMoHJZAVvOLo572oiUupgVGkJ3RhGJN4yIpbVTnsTCdQDHnGGe7zm7XzmX4xOgZ8AzcfKxHa9LBsAAAAAElFTkSuQmCC)'
     }
@@ -363,25 +404,27 @@
             //white to alpha 0 ,horizen
             ctx.rect(0, 0, canvas.width, canvas.height);
             var grd0 = ctx.createLinearGradient(0, 0, canvas.width, 0);
-            grd0.addColorStop(0, '#fff');
-            grd0.addColorStop(1, 'rgba(255,255,255,0)');
+            grd0.addColorStop(0, 'hsl(0, 0%, 50%)');
+            grd0.addColorStop(1, 'hsla(0, 0%, 50%, 0)');
             ctx.fillStyle = grd0;
             ctx.fill();
 
             //black to alpha 0 ,vertical
             var grd1 = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            grd1.addColorStop(0, 'rgba(255,255,255,0)');
-            grd1.addColorStop(1, '#000');
+            grd1.addColorStop(0, 'hsl(0, 0%, 100%)');
+            grd1.addColorStop(0.5, 'hsla(0, 0%, 100%, 0)');
+            grd1.addColorStop(0.5, 'hsla(0, 0%, 0%, 0)');
+            grd1.addColorStop(1, 'hsl(0, 0%, 0%)');
             return grd1;
         })
     }
 
     ColorDetailPicker.prototype.initPosition = function (hsv) {
         var s = hsv.s;
-        var v = hsv.v;
-        this.cursor.style.bottom = floatToPercentage(s / 100);
-        this.cursor.style.left = floatToPercentage((160 - v) / 100);
-        this.onPositionChange(s / 100 * 160, (100 - v) / 100 * 160);
+        var l = hsv.l;
+        this.cursor.style.bottom = floatToPercentage(l / 100);
+        this.cursor.style.left = floatToPercentage(s / 100);
+        this.onPositionChange(s /  100* 160, (100 - l) / 100 * 160);
     }
 
     function ColorAlphaPicker() {
@@ -397,7 +440,7 @@
 
     ColorAlphaPicker.prototype.fillCanvas = function (color) {
         this.fillCanvasCommon(function (ctx, canvas) {
-            var grd = ctx.createLinearGradient(0, 0,canvas.width, 0);
+            var grd = ctx.createLinearGradient(0, 0, canvas.width, 0);
             color[3] = 0;
             grd.addColorStop(0, getRgba(color));
             color[3] = 1;
@@ -427,18 +470,23 @@
 
 
     function CPicker(parent, color, callback) {
-        try {
-            //append subpickers to picker
+            //调度事件传递
             var dispatcher = new Dispatcher(parent);
+            //基色选择
             var ccp = new ColorColorPicker();
+            //详细选择
             var cdp = new ColorDetailPicker();
+            //opacity选择
             var cap = new ColorAlphaPicker();
+            //取消按钮
             var cancelBtn = new CancelBtn();
+            //---------------------------
             this.ccp = ccp;
             this.cdp = cdp;
             this.cap = cap;
             this.cancelBtn = cancelBtn;
             this.callback = callback;
+            //---------------------------
             dispatcher.layout(ccp, cdp, cap, cancelBtn);
             this.dispatcher = dispatcher;
 
@@ -448,33 +496,30 @@
             ActivatePickerCursors(false, true, cap);
 
             this.initColor(color);
-        } catch (e) {
-
-        }
 
     }
 
     CPicker.prototype.initColor = function (color, callback) {
-        //init canvas
+        //填充canvas
         var rgbaArr = rgbaStringToArr(color);
         this.ccp.fillCanvas();
         this.cdp.fillCanvas(rgbaArr);
         this.cap.fillCanvas(rgbaArr);
 
-        //dispatch pickers
+        //调度pickers
         var firstTime = true;
         this.previousColor = rgbaArr;
         this.currentColor = rgbaArr;
-        function dispatcherHandler(c, isCap){
-            if(c[3] === 3) {
+        function dispatcherHandler(c, isCap) {
+            if (c[3] === 3) {
                 c[3] = 0;
             }
-            if(isCap) {
+            if (isCap) {
                 this.currentColor[3] = c[3];
             } else {
                 this.currentColor = c;
             }
-            if(firstTime) {
+            if (firstTime) {
                 this.callback(color);
                 firstTime = false;
             } else {
@@ -485,17 +530,19 @@
         this.dispatcher.dispatch(this.ccp, this.cdp, this.cap, dispatcherHandler.bind(this));
 
         var _this = this;
+
         function initPosition() {
             //init position
             rgbaArr = rgbaStringToArr(color);
-            var hsvArr = rgb2hsv.apply(null, rgbaArr);
-            _this.ccp.initPosition(hsvArr);
-            _this.cdp.initPosition(hsvArr);
+            var hslArr = rgbToHsl.apply(null, rgbaArr);
+            console.log(hslArr);
+            _this.ccp.initPosition(hslArr);
+            _this.cdp.initPosition(hslArr);
             _this.cap.initPosition(rgbaArr);
         }
 
         this.cancelBtn.dom.onclick = function () {
-            if(this.previousColor[3] === 1)
+            if (this.previousColor[3] === 1)
                 this.previousColor[3] = 255;
             dispatcherHandler.bind(this)(this.previousColor);
         }.bind(this);
@@ -505,8 +552,8 @@
     CPicker.prototype.clickManager = function () {
         var container = this.dispatcher.container;
         var handler = function (e) {
-            if(e.path.indexOf(container) < 0 || e.path.indexOf(this.cancelBtn.dom) > -1) {
-                if(this.opened) {
+            if (e.path.indexOf(container) < 0 || e.path.indexOf(this.cancelBtn.dom) > -1) {
+                if (this.opened) {
                     this.close();
                 }
                 document.removeEventListener('click', handler);
@@ -516,7 +563,7 @@
     }
 
     CPicker.prototype.open = function () {
-        if(!this.opened) {
+        if (!this.opened) {
             this.dispatcher.container.style.visibility = 'visible';
             var _this = this;
             setTimeout(function () {
@@ -528,7 +575,7 @@
 
     CPicker.prototype.close = function () {
         //这里更新previousColor
-        if(this.opened) {
+        if (this.opened) {
             this.dispatcher.container.style.visibility = 'hidden';
             this.previousColor = this.currentColor;
             console.log(this, this.previousColor);

@@ -17,16 +17,7 @@
     </div>
 </div>
 
-<div id="color2" style="position:relative">
-    <span class="open-btn color-display" style="height:13px;width:13px;display: inline-block;"></span>
-    <span class="open-btn color-value">ddd</span>
-    <div class="color-picker" style='position: absolute;left: 0px; top: 22px;'>
-    </div>
-</div>
 <script src="colorPicker.js"></script>
-<script>
-
-</script>
 
 <script>
     window.onload = function () {
@@ -35,12 +26,12 @@
             var parent = document.getElementsByClassName('color-picker')[0];
             var display = document.getElementsByClassName('color-display')[0];
             var value = document.getElementsByClassName('color-value')[0];
-            var cp = new ColorPicker(parent, '', function (color) {
+            var cp = new ColorPicker(parent, 'rgba(248,193,76,0.44)', function (color) {
                 value.innerHTML = color;
                 display.style.backgroundColor = color;
             });
 
-            Array.prototype.forEach.call(document.getElementsByClassName('open-btn'), function(btn) {
+            Array.prototype.forEach.call(document.getElementsByClassName('open-btn'), function (btn) {
                 btn.onclick = function () {
                     cp.open();
                 }
@@ -48,7 +39,6 @@
         }
 
         cp(document.getElementById('color'));
-        cp(document.getElementById('color2'));
 
     }
 </script>

@@ -1,7 +1,7 @@
 {
-  "name": "canvasColorPicker",
-  "version": "1.0.0",
-  "description": "color picker by canvas and it's standalone components.",
+  "name": "canvas-color-picker",
+  "version": "1.2.0",
+  "description": "color picker by canvas and it's standalone components. transplant easily",
   "main": "colorPicker.js",
   "repository": {
     "type": "git",

@@ -102,10 +102,15 @@
         if (y >= limitY) {
             y = limitY - 1
         }
-        //canvas选色方案的缺陷, 有时候想选择纯黑的时候, 只能选到1,1,1
         var data = picker.canvas.getContext("2d").getImageData(x, y, 1, 1).data;
+        //HACK:canvas选色方案的缺陷, 有时候想选择纯黑的时候, 只能选到1,1,1
         if (data[0] === 1 && data[1] === 1 && data[2] === 1) {
             data[0] = data[1] = data[2] = 0;
+        }
+
+        console.log(data);
+        if (data[3] > 251) {
+            data[3] = 255;
         }
         return data;
     }
@@ -280,7 +285,7 @@
 
         //create container
         var container = document.createElement('div');
-        container.setAttribute('style', 'width:215px;height:215px;position:relative;background-color:rgba(250,250,255);border:1px solid #ddd;border-radius:6px;visibility:hidden;background-color:white;z-index:1000;');
+        container.setAttribute('style', 'width:215px;height:215px;position:relative;background-color:rgba(250,250,255);border:1px solid #ddd;border-radius:6px;display:none;background-color:white;z-index:1000;');
         this.container = container;
 
         parent.appendChild(this.container);
@@ -470,32 +475,32 @@
 
 
     function CPicker(parent, color, callback) {
-            //调度事件传递
-            var dispatcher = new Dispatcher(parent);
-            //基色选择
-            var ccp = new ColorColorPicker();
-            //详细选择
-            var cdp = new ColorDetailPicker();
-            //opacity选择
-            var cap = new ColorAlphaPicker();
-            //取消按钮
-            var cancelBtn = new CancelBtn();
-            //---------------------------
-            this.ccp = ccp;
-            this.cdp = cdp;
-            this.cap = cap;
-            this.cancelBtn = cancelBtn;
-            this.callback = callback;
-            //---------------------------
-            dispatcher.layout(ccp, cdp, cap, cancelBtn);
-            this.dispatcher = dispatcher;
+        //调度事件传递
+        var dispatcher = new Dispatcher(parent);
+        //基色选择
+        var ccp = new ColorColorPicker();
+        //详细选择
+        var cdp = new ColorDetailPicker();
+        //opacity选择
+        var cap = new ColorAlphaPicker();
+        //取消按钮
+        var cancelBtn = new CancelBtn();
+        //---------------------------
+        this.ccp = ccp;
+        this.cdp = cdp;
+        this.cap = cap;
+        this.cancelBtn = cancelBtn;
+        this.callback = callback;
+        //---------------------------
+        dispatcher.layout(ccp, cdp, cap, cancelBtn);
+        this.dispatcher = dispatcher;
 
-            //init cursor events
-            ActivatePickerCursors(true, false, ccp);
-            ActivatePickerCursors(true, true, cdp);
-            ActivatePickerCursors(false, true, cap);
+        //init cursor events
+        ActivatePickerCursors(true, false, ccp);
+        ActivatePickerCursors(true, true, cdp);
+        ActivatePickerCursors(false, true, cap);
 
-            this.initColor(color);
+        this.initColor(color);
 
     }
 
@@ -564,7 +569,7 @@
 
     CPicker.prototype.open = function () {
         if (!this.opened) {
-            this.dispatcher.container.style.visibility = 'visible';
+            this.dispatcher.container.style.display = 'block';
             var _this = this;
             setTimeout(function () {
                 _this.clickManager.call(_this);
@@ -576,7 +581,7 @@
     CPicker.prototype.close = function () {
         //这里更新previousColor
         if (this.opened) {
-            this.dispatcher.container.style.visibility = 'hidden';
+            this.dispatcher.container.style.display = 'none';
             this.previousColor = this.currentColor;
             console.log(this, this.previousColor);
         }

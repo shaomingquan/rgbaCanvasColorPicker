@@ -108,7 +108,6 @@
             data[0] = data[1] = data[2] = 0;
         }
 
-        console.log(data);
         if (data[3] > 251) {
             data[3] = 255;
         }
@@ -303,9 +302,11 @@
 
     Dispatcher.prototype.dispatch = function (ccp, cdp, cap, callback) {
         //ccp => cdp => cap
-        function getCapPx() {
-            var x = cap.cursor.offsetLeft;
-            callback(getPixel(!x ? 1 : x, 0, cap));
+        function getCapPx(_) {
+            if(!_) {
+                var x = cap.cursor.offsetLeft;
+                callback(getPixel(!x ? 1 : x, 0, cap));
+            }
         }
 
         cap.onPositionChange = function (x, y) {
@@ -314,18 +315,18 @@
         }
 
         var dx, dy;
-        cdp.onPositionChange = function (x, y) {
+        cdp.onPositionChange = function (x, y, _) {
             dx = x;
             dy = y;
             var px = getPixel(x, y, this);
             cap.fillCanvas(px);
-            getCapPx();
+            getCapPx(_);
         }
 
-        ccp.onPositionChange = function (x, y) {
+        ccp.onPositionChange = function (x, y, _) {
             var px = getPixel(x, y, this);
             cdp.fillCanvas(px);
-            cdp.onPositionChange(dx, dy);
+            cdp.onPositionChange(dx, dy, _);
         }
     }
 
@@ -386,6 +387,8 @@
     ColorColorPicker.prototype.initPosition = function (hsv) {
         var h = hsv.h;
         this.cursor.style.top = floatToPercentage(h / 360);
+        //for first dispatch
+        return  [10, parseInt(h / 360 * 160)];
     }
 
     function ColorDetailPicker() {
@@ -429,7 +432,7 @@
         var l = hsv.l;
         this.cursor.style.bottom = floatToPercentage(l / 100);
         this.cursor.style.left = floatToPercentage(s / 100);
-        this.onPositionChange(s /  100* 160, (100 - l) / 100 * 160);
+        this.onPositionChange(s /  100* 160, (100 - l) / 100 * 160, true);
     }
 
     function ColorAlphaPicker() {
@@ -508,8 +511,7 @@
         //填充canvas
         var rgbaArr = rgbaStringToArr(color);
         this.ccp.fillCanvas();
-        this.cdp.fillCanvas(rgbaArr);
-        this.cap.fillCanvas(rgbaArr);
+
 
         //调度pickers
         var firstTime = true;
@@ -540,10 +542,12 @@
             //init position
             rgbaArr = rgbaStringToArr(color);
             var hslArr = rgbToHsl.apply(null, rgbaArr);
-            console.log(hslArr);
-            _this.ccp.initPosition(hslArr);
+            var position = _this.ccp.initPosition(hslArr);
             _this.cdp.initPosition(hslArr);
             _this.cap.initPosition(rgbaArr);
+            //first dispatch
+            // debugger;
+            _this.ccp.onPositionChange.apply(_this.ccp, position.concat(true));
         }
 
         this.cancelBtn.dom.onclick = function () {
@@ -583,7 +587,6 @@
         if (this.opened) {
             this.dispatcher.container.style.display = 'none';
             this.previousColor = this.currentColor;
-            console.log(this, this.previousColor);
         }
         this.opened = false;
     }
